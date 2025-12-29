@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Comparison Tool</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+header {
+    background: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-secondary { background: #6c757d; }
+.btn-danger { background: #dc3545; }
+.btn-small { font-size: 0.85rem; padding: 0.4rem 0.8rem; }
+
+.projects-list {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.project-item {
+    background: #f8f9fa;
+    padding: 0.7rem;
+    border-radius: 6px;
+    margin-bottom: 0.4rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.project-item.active {
+    background: #007bff;
+    color: white;
+}
+
+.project-detail {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.hidden { display: none; }
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+textarea, input, select {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    font-family: inherit;
+}
+
+.assessment-item {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+.llm-item {
+    background: white;
+    padding: 0.8rem;
+    border-radius: 6px;
+    margin-bottom: 0.6rem;
+}
+
+.viewer-tabs {
+    display: flex;
+    gap: 0.3rem;
+    margin-bottom: 0.4rem;
+}
+
+.tab-btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background: #e9ecef;
+    cursor: pointer;
+}
+
+.tab-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.render-box {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    padding: 0.5rem;
+    min-height: 120px;
+    overflow: auto;
+}
+
+.code-box {
+    min-height: 120px;
+    font-family: ui-monospace, monospace;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header>
+<h1>LLM Comparison Tool</h1>
+<p>SVG & HTML generation benchmarking</p>
+</header>
+
+<div class="projects-list" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+    <div>
+        <h3>Active Tests</h3>
+        <div id="activeProjects"></div>
+        <button class="btn btn-small" onclick="createProject()">+ New Test</button>
+    </div>
+    <div>
+        <h3>Archived Tests</h3>
+        <button class="btn btn-small btn-secondary" onclick="toggleArchivedView()">Toggle</button>
+        <div id="archivedProjects"></div>
+    </div>
+</div>
+
+<div id="projectDetail" class="project-detail hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2>Project</h2>
+        <div>
+            <button class="btn btn-secondary btn-small" onclick="toggleArchive()">Archive</button>
+            <button class="btn btn-danger btn-small" onclick="deleteProject()">Delete</button>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Name</label>
+        <input id="projectName">
+    </div>
+
+    <div class="form-group">
+        <label>Objective</label>
+        <textarea id="objective"></textarea>
+    </div>
+
+    <h3>Assessments</h3>
+    <button class="btn btn-small" onclick="addAssessment()">+ Add Assessment</button>
+    <div id="assessmentsList"></div>
+</div>
+
+</div>
+
+<script>
+let projects = JSON.parse(localStorage.getItem('llmProjects') || '[]');
+let currentProjectId = null;
+let showArchived = true;
+
+function saveProjects() {
+    localStorage.setItem('llmProjects', JSON.stringify(projects));
+}
+
+function createProject() {
+    const p = {
+        id: Date.now().toString(),
+        name: '',
+        objective: '',
+        assessments: [],
+        archived: false
+    };
+    projects.push(p);
+    saveProjects();
+    loadProject(p.id);
+}
+
+function toggleArchive() {
+    const p = projects.find(p => p.id === currentProjectId);
+    if (!p) return;
+    p.archived = !p.archived;
+    saveProjects();
+    renderProjects();
+}
+
+function toggleArchivedView() {
+    showArchived = !showArchived;
+    renderProjects();
+}
+
+function renderProjects() {
+    const active = document.getElementById('activeProjects');
+    const archived = document.getElementById('archivedProjects');
+
+    active.innerHTML = projects.filter(p => !p.archived)
+        .map(p => projectItem(p)).join('');
+
+    archived.innerHTML = showArchived
+        ? projects.filter(p => p.archived).map(p => projectItem(p)).join('')
+        : '<em>Hidden</em>';
+}
+
+function projectItem(p) {
+    return `<div class="project-item ${p.id===currentProjectId?'active':''}"
+        onclick="loadProject('${p.id}')">
+        <strong>${p.name || 'Untitled'}</strong>
+        <span>${p.assessments.length}</span>
+    </div>`;
+}
+
+function loadProject(id) {
+    currentProjectId = id;
+    const p = projects.find(p => p.id === id);
+    document.getElementById('projectDetail').classList.remove('hidden');
+    document.getElementById('projectName').value = p.name;
+    document.getElementById('objective').value = p.objective;
+    renderAssessments(p);
+    renderProjects();
+}
+
+function addAssessment() {
+    const p = projects.find(p => p.id === currentProjectId);
+    p.assessments.push({ name:'', results:[] });
+    saveProjects();
+    renderAssessments(p);
+}
+
+function renderAssessments(project) {
+    const el = document.getElementById('assessmentsList');
+    el.innerHTML = project.assessments.map((a, ai) => `
+    <div class="assessment-item">
+        <input placeholder="Assessment name"
+            value="${a.name}"
+            onchange="updateAssessment(${ai}, this.value)">
+        <button class="btn btn-small" onclick="addResult(${ai})">+ LLM</button>
+        ${a.results.map((r, ri) => renderResult(ai, ri, r)).join('')}
+    </div>`).join('');
+}
+
+function updateAssessment(i, val) {
+    projects.find(p=>p.id===currentProjectId).assessments[i].name = val;
+    saveProjects();
+}
+
+function addResult(ai) {
+    const a = projects.find(p=>p.id===currentProjectId).assessments[ai];
+    a.results.push({ llm:'', status:'Pass', code:'', tab:'code' });
+    saveProjects();
+    renderAssessments(projects.find(p=>p.id===currentProjectId));
+}
+
+function renderResult(ai, ri, r) {
+    return `
+    <div class="llm-item">
+        <input placeholder="LLM name" value="${r.llm}"
+            onchange="updateResult(${ai},${ri},'llm',this.value)">
+        <select onchange="updateResult(${ai},${ri},'status',this.value)">
+            <option ${r.status==='Pass'?'selected':''}>Pass</option>
+            <option ${r.status==='Partial'?'selected':''}>Partial</option>
+            <option ${r.status==='Fail'?'selected':''}>Fail</option>
+        </select>
+
+        <div class="viewer-tabs">
+            <button class="tab-btn ${r.tab==='code'?'active':''}"
+                onclick="setTab(${ai},${ri},'code')">Code</button>
+            <button class="tab-btn ${r.tab==='rendered'?'active':''}"
+                onclick="setTab(${ai},${ri},'rendered')">Rendered</button>
+        </div>
+
+        ${r.tab==='code'
+            ? `<textarea class="code-box"
+                onchange="updateResult(${ai},${ri},'code',this.value)">${r.code||''}</textarea>`
+            : `<div class="render-box">${r.code||'<em>No output</em>'}</div>`}
+    </div>`;
+}
+
+function setTab(ai, ri, tab) {
+    projects.find(p=>p.id===currentProjectId)
+        .assessments[ai].results[ri].tab = tab;
+    saveProjects();
+    renderAssessments(projects.find(p=>p.id===currentProjectId));
+}
+
+function updateResult(ai, ri, field, val) {
+    projects.find(p=>p.id===currentProjectId)
+        .assessments[ai].results[ri][field] = val;
+    saveProjects();
+}
+
+function deleteProject() {
+    projects = projects.filter(p => p.id !== currentProjectId);
+    currentProjectId = null;
+    saveProjects();
+    document.getElementById('projectDetail').classList.add('hidden');
+    renderProjects();
+}
+
+renderProjects();
+</script>
+</body>
+</html>
