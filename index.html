@@ -135,6 +135,17 @@ textarea, input, select {
     min-height: 120px;
     font-family: ui-monospace, monospace;
 }
+#footer {
+    position: absolute;
+    bottom: 0;
+    paddding: .5rem 1rem;
+    text-align:center;
+    background: white; 
+    color: black;
+    border-top: 2px solid black;
+    width: 100%;
+    min-width: 100%;
+}
 </style>
 </head>
 
@@ -182,7 +193,7 @@ textarea, input, select {
     <button class="btn btn-small" onclick="addAssessment()">+ Add Assessment</button>
     <div id="assessmentsList"></div>
 </div>
-
+<footer id="footer"><span>This tool is intended for exploratory evaluation and documentation. Results are context-dependent and not definitive benchmarks.</span></spann></footer>
 </div>
 
 <script>
