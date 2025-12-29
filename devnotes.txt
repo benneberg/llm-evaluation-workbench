@@ -178,14 +178,84 @@ Only after you have 3–5 real tests, consider automation.
 
 ⸻
 
-Final Note (Important)
+FUTURE WORK – LLM Evaluation Workbench
+====================================
 
-You are not building “a benchmark”.
-You are building a thinking surface for model behavior.
+Planned Enhancements (Deferred)
 
-That distinction is why this is worth publishing.
+1. Landing / Gallery Pipeline
+-----------------------------
 
-When you’re ready, next logical steps are:
+Goal:
+Create a read-only landing view that surfaces completed tests stored in the
+`/structures/` directory, suitable for public viewing via GitHub Pages.
+
+Key capabilities:
+- Read test definitions from `/structures/**/metadata.json`
+- Aggregate tests by domain (e.g. svg, reasoning, multimodal)
+- Display a gallery/grid of tests with:
+  - Title
+  - Short description
+  - Tags / constraints (if present)
+  - Rendered preview image (if available)
+- Each gallery item should link to:
+  - The test folder in the repository
+  - Or a read-only detail view in the UI (optional future step)
+
+Design constraints:
+- Static-only (no backend)
+- Compatible with GitHub Pages
+- Graceful degradation if previews are missing
+- No assumption about test modality (SVG, HTML, video, etc.)
+
+Possible implementation approach:
+- Fetch directory index or a generated manifest JSON
+- Render a lightweight gallery page (gallery.html or landing mode)
+- Treat artifacts as opaque (UI does not need to interpret them)
+
+------------------------------------------------------------
+
+2. GitHub Actions: Artifact Validation & Preview Generation
+------------------------------------------------------------
+
+Goal:
+Automate validation and preview generation for test artifacts to improve
+reliability, reproducibility, and public presentation quality.
+
+Planned pipeline steps:
+- Trigger on push to main (or on changes under /structures/)
+- For each test artifact:
+  - Validate SVG and HTML syntax
+  - Fail or warn on malformed output
+- Generate preview images:
+  - SVG → PNG (headless browser or svg renderer)
+  - HTML → PNG (headless Chromium)
+- Store generated previews alongside artifacts:
+  /structures/<domain>/<test>/artifacts/<model>/preview.png
+
+Commit behavior:
+- Auto-commit generated previews back to the repository
+- Clearly mark commits as CI-generated
+
+Design constraints:
+- Deterministic output (same input = same preview)
+- No proprietary tooling
+- Prefer widely available open-source tools
+
+Potential tools:
+- Playwright or Puppeteer (HTML/SVG rendering)
+- SVGO (optional validation)
+- html-validator / tidy (HTML checks)
+
+------------------------------------------------------------
+
+Notes:
+- These features should remain OPTIONAL and non-invasive.
+- The core UI must continue to function without /structures/ or CI.
+- Avoid locking the project into a specific evaluation methodology.
+
+Status:
+Deferred – revisit after multiple real-world tests exist. next logical steps are:
 	•	JSON schema validation
 	•	Read-only GitHub Pages “gallery mode”
 	•	Side-by-side artifact diffing
