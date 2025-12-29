@@ -1,0 +1,194 @@
+Next: Structuring Tests & Artifacts (Design Proposal)
+
+You are thinking in exactly the right direction here. The moment you allow HTML, SVG, images, or video, flat JSON is no longer enough.
+
+Design Principles
+	•	Tests are folders, not just files
+	•	Artifacts live next to the prompt that produced them
+	•	Human notes live alongside machine outputs
+	•	GitHub Pages compatibility is preserved
+
+
+Understood. I will proceed concretely and give you the next logical building block without bloating the system or locking you into a rigid framework.
+
+Below you will get three things, all designed to stay universal, optional, and future-proof:
+	1.	A formal but permissive JSON schema for stored tests
+	2.	A recommended directory contract (what files mean, not how to render them)
+	3.	A minimal, non-invasive loader pattern you can add later without refactoring your UI
+
+Nothing here forces you to change how you work today.
+
+⸻
+
+1. Canonical Test Schema (Permissive, Not Opinionated)
+
+This schema is intentionally loose. It validates structure, not methodology.
+
+structures/<domain>/<test-name>/metadata.json
+
+{
+  "id": "svg-minimalism-001",
+  "title": "SVG Minimalism Benchmark",
+  "domain": "svg",
+  "description": "Evaluates semantic compression and abstraction under strict constraints.",
+  "created": "2025-01-10",
+  "author": "Lukas",
+  "tags": ["svg", "minimalism", "compression"],
+  "constraints": {
+    "token_limit": 900,
+    "element_limit": 15
+  },
+  "modalities": ["svg"],
+  "status": "completed"
+}
+
+Why this works
+	•	No scoring model enforced
+	•	No assumption about LLM APIs
+	•	Extensible (constraints, tags, modalities)
+	•	Human-readable and diff-friendly
+
+⸻
+
+2. Results Schema (Model-Agnostic, Artifact-Friendly)
+
+results.json
+
+{
+  "test_id": "svg-minimalism-001",
+  "models": [
+    {
+      "model": "GPT-4",
+      "outcome": "Pass",
+      "notes": "Excellent abstraction, motion preserved",
+      "artifacts": {
+        "svg": "artifacts/gpt-4/output.svg",
+        "preview": "artifacts/gpt-4/preview.png"
+      }
+    },
+    {
+      "model": "Claude",
+      "outcome": "Partial",
+      "notes": "Readable forms but weak motion cues",
+      "artifacts": {
+        "svg": "artifacts/claude/output.svg"
+      }
+    }
+  ]
+}
+
+Key design choice
+
+Artifacts are paths, not embedded blobs.
+This lets you attach:
+	•	SVG
+	•	HTML
+	•	PNG
+	•	MP4
+	•	JSON
+	•	Markdown notes
+
+without changing schema.
+
+⸻
+
+3. Artifact Contract (Flexible by Design)
+
+Artifacts are opaque to the system. The tool does not care what they are.
+
+artifacts/
+└── <model-name>/
+    ├── output.svg
+    ├── output.html
+    ├── preview.png
+    ├── animation.mp4
+    └── notes.md
+
+Your UI may:
+	•	Render SVG inline
+	•	Display images
+	•	Embed video
+	•	Ignore unknown files
+
+This is critical for long-term adaptability.
+
+⸻
+
+4. Minimal Loader Pattern (Optional, Safe, Static)
+
+This is not required today, but future-you will thank you for it.
+
+Example: Load a Test into the UI
+
+async function loadTestFromStructure(path) {
+    const meta = await fetch(`${path}/metadata.json`).then(r => r.json());
+    const results = await fetch(`${path}/results.json`).then(r => r.json());
+
+    return {
+        name: meta.title,
+        objective: meta.description,
+        description: JSON.stringify(meta.constraints, null, 2),
+        assessments: [
+            {
+                name: meta.title,
+                results: results.models.map(m => ({
+                    llm: m.model,
+                    result: m.outcome,
+                    comment: m.notes,
+                    code: m.artifacts?.svg
+                        ? fetch(m.artifacts.svg).then(r => r.text())
+                        : '',
+                    tab: 'rendered'
+                }))
+            }
+        ],
+        archived: true
+    };
+}
+
+This allows:
+	•	Read-only historical tests
+	•	GitHub-hosted references
+	•	Linking in discussions or PRs
+	•	Zero backend
+
+⸻
+
+5. Why This Architecture Will Hold Up
+
+You now have three layers:
+
+Layer	Purpose	Mutable
+UI (index.html)	Interaction & inspection	Yes
+Structures	Research record	Rarely
+Artifacts	Ground truth outputs	Never
+
+This separation is what keeps tools alive for years.
+
+⸻
+
+6. What I Recommend You Do Next (In Order)
+	1.	Commit your current tool as v0.1
+	2.	Add /structures/ empty
+	3.	Add one completed test manually
+	4.	Reference it in README as an example
+	5.	Do not auto-load yet
+
+Only after you have 3–5 real tests, consider automation.
+
+⸻
+
+Final Note (Important)
+
+You are not building “a benchmark”.
+You are building a thinking surface for model behavior.
+
+That distinction is why this is worth publishing.
+
+When you’re ready, next logical steps are:
+	•	JSON schema validation
+	•	Read-only GitHub Pages “gallery mode”
+	•	Side-by-side artifact diffing
+	•	Time-series comparison across model versions
+
+Say the word when you want to move forward.
